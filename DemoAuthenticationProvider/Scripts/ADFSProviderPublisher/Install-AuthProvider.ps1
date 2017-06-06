@@ -11,38 +11,44 @@ function Install-AuthProvider{
 
 		[Parameter(Position=1, Mandatory=$true)]
 		[string]$ProviderName,
-
+		
 		[Parameter(Position=2, Mandatory=$true)]
+		[string]$FolderName,
+		
+		[Parameter(Position=3, Mandatory=$true)]
+		[string]$FileName,
+
+		[Parameter(Position=4, Mandatory=$true)]
 		[string[]]$Assemblies,
 
-		[Parameter(Position=3, Mandatory=$true)]
+		[Parameter(Position=5, Mandatory=$true)]
 		[string]$SourcePath,
 
-		[Parameter(Position=4)]
+		[Parameter(Position=6)]
 		[string]$ComputerName,
 
-		[Parameter(Position=5)]
+		[Parameter(Position=7)]
 		[pscredential]$Credential = $null
 	)
 
 	if($Credential -eq $null) { $Credential = Get-Credential }
 
 	Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock {
-		param($typeName,$providerName,$assemblies)
+		param($typeName,$providerName,$FolderName,$assemblies)
 
-		$WarningPreference = "SilentlyContinue"
+		$WarningPreference = "Continue"
 		$ErrorActionPreference = "Stop"
 
 		Try
 		{
-			if(!(Test-Path "C:\$($providerName)")){ New-Item -ItemType Directory -Path "C:\$($providerName)" > $null}
-			Set-location "C:\$($providerName)"
+			if(!(Test-Path "C:\$($FolderName)")){ New-Item -ItemType Directory -Path "C:\$($FolderName)" > $null}
+			Set-location "C:\$($FolderName)"
 
 			[System.Reflection.Assembly]::Load("System.EnterpriseServices, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
 			$publish = New-Object System.EnterpriseServices.Internal.Publish
 
 			$assemblies |% {
-				$path = "C:\{0}\{1}" -f $providerName, $_
+				$path = "C:\{0}\{1}" -f $FolderName, $_
 				$publish.GacInstall($path)
 			} > $null
 
@@ -51,14 +57,14 @@ function Install-AuthProvider{
 			Start-Service -Name adfssrv
 
 			# Restart device recognition service (which was stopped as a dependent service when adfssrv was stopped)
-			Start-Service -Name drs
+			#Start-Service -Name drs
 
-			# Enable the provider in ADFS
+			# Enable the provider in ADFS - TODO, must run as admin
 			Set-AdfsGlobalAuthenticationPolicy -AdditionalAuthenticationProvider $providerName
 		}
 		Catch
 		{
 			Write-Error $_.Exception.Message
 		}
-	} -ArgumentList $FullTypeName,$ProviderName,$Assemblies
+	} -ArgumentList $FullTypeName,$ProviderName,$FolderName,$Assemblies
 }

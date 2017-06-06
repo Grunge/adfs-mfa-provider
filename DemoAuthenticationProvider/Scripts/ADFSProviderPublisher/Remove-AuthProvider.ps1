@@ -1,4 +1,4 @@
-function Uninstall-AuthProvider{
+function Remove-AuthProvider{
 	<#
 		.SYNOPSIS
 		Disables a provider, removes it from ADFS, and deletes its local files
