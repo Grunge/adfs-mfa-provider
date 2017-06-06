@@ -1,15 +1,17 @@
-Import-Module "$PSScriptRoot\ADFSProviderPublisher\ADFSProviderPublisher.psm1"
+Import-Module "$PSScriptRoot\..\ADFSProviderPublisher\ADFSProviderPublisher.psm1"
 
 try{
-	# To turn on Verbose or Debug outputs, change the corresponding preference to "Continue"
-    $WarningPreference = "SilentlyContinue"
+	# To turn on Verbose or Debug outputs, change the corresponding preference to "Continue" ("SilentlyContinue")
+    $WarningPreference = "Continue"
     $VerbosePreference = "Continue"
-    $DebugPreference = "SilentlyContinue"
+    $DebugPreference = "Continue"
 
 
 	# change these values to suit your needs
-	$adfsServer = '11.1.11.11'
-	$providerName = 'DemoProvider'
+	$adfsServer = 'servername.domain.com'
+	$providerName = 'DEMO'
+	$folderName = 'company\demo'
+	$fileName = 'DemoAuthenticationProvider.dll'
 	$builtAssemblyPath = [System.IO.Path]::GetFullPath("$PSScriptRoot\..\bin\DemoAuthenticationProvider.dll")
 
 	if(!(Test-Path $builtAssemblyPath)){
@@ -21,12 +23,14 @@ try{
 	$fullTypeName = "DemoAuthenticationProvider.DemoAdapter, " + $fullname
 
 	$cred = Get-Credential
-	$sourcePath = [System.IO.Path]::GetFullPath("$PSScriptRoot\..\bin")
+	$sourcePath = [System.IO.Path]::GetFullPath("$PSScriptRoot\..\bin\")
 	$assemblies =  Get-ChildItem "$sourcePath\" -Include *.dll -Recurse | Select-Object -ExpandProperty Name
 
 	$adfsProviderParams = @{
 		FullTypeName = $fullTypeName
 		ProviderName = $providerName
+		FolderName = $folderName
+		FileName = $fileName
 		ComputerName = $adfsServer
 		Credential = $cred
 		SourcePath = $sourcePath
@@ -34,7 +38,7 @@ try{
 	}
 
 	"Uninstalling {0} on {1}" -f $providerName,$adfsServer | Write-Verbose
-	Uninstall-AuthProvider @adfsProviderParams
+	Remove-AuthProvider @adfsProviderParams
 
 	"Copying locally built {0} artifacts to {1}" -f $providerName,$adfsServer | Write-Verbose
 	Copy-AuthProvider @adfsProviderParams
